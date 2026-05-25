@@ -59,29 +59,23 @@ The system is designed as a “black box” wrapper that can be applied to exist
 
 ### Setup
 
-* Dataset: [Specify dataset — e.g., MNIST / CIFAR / ECG dataset]
-* Model: [Specify architecture]
+* Dataset: Toy dataset with controlled noise components
+* Model: Deep Neural Network
 * Baseline: Standard training without spectral modification
-
-### Evaluation Metrics
-
-* Accuracy / loss
-* Training stability
-* Generalization performance
 
 ### Current Findings
 
 * Preliminary experiments suggest that certain spectral modifications can influence training dynamics
 * Effects vary significantly depending on model architecture and input dimensionality
-* No consistent improvement observed yet across all settings
+* Consistent improvements are observed with varying noise settings.
 
 ---
 
 ## Limitations
 
 * Results are preliminary and not yet statistically robust
-* Method sensitivity to hyperparameters is high
 * Computational overhead introduced by FFT operations
+* Interaction of the model with real-world data is yet to be seen
 * Unclear theoretical grounding for when and why improvements occur
 
 ---
@@ -95,26 +89,6 @@ The system is designed as a “black box” wrapper that can be applied to exist
 
 ---
 
-## Repository Structure
-
-* `/models` — network architectures
-* `/spectral` — FFT and transformation utilities
-* `/experiments` — training scripts and evaluation
-* `/results` — logs and outputs
-
----
-
-## How to Run
-
-1. Clone the repository
-2. Install dependencies
-3. Run training script:
-
-   ```bash
-   python train.py
-   ```
-
----
 
 ## Notes
 
@@ -126,4 +100,4 @@ This is an ongoing research project. The goal is exploratory: to test whether fr
 
 Aditya Bhagwani
 University of Washington
-[Your email / LinkedIn / website]
+bhagwani@uw.edu
