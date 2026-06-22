@@ -1,98 +1,58 @@
-# Fourier-Based Optimization of Neural Networks
+# Curve Optimizer — Spectral Post-Processing for Overfit DNNs
 
-## Overview
+Training-free method for improving DNN generalization: treat the model's output as a 1-D signal and strip memorization artefacts in the frequency domain via FFT low-pass filtering — zero retraining required.
 
-This project explores a frequency-domain approach to analyzing and modifying the internal representations of deep neural networks. Instead of operating purely in the spatial (activation) domain, the method applies Fourier transforms to output representations to study whether frequency-based structure can be leveraged for improved optimization and generalization.
+## Core Hypothesis
 
-The core idea is that an overfitted neural network's output function may contain redundant or noisy components that can be better understood—and potentially filtered—when expressed in the frequency domain.
+Memorization is high-frequency noise; true signal structure is low-frequency. If this spectral separation holds, filtering an overfit model's output curve should improve test performance post-hoc.
 
----
+## Method
 
-## Key Insight
-
-Overfitted neural networks often possess high frequency components that the network uses to memorize training data. This can be filtered out using spectral representations.
-
----
-
-## Motivation
-
-Traditional deep learning optimization operates directly on activations and gradients without explicitly considering their spectral structure. However, many signals (e.g., images, time-series data) exhibit meaningful patterns in the frequency domain.
-
-This project investigates:
-
-* Whether neural activations exhibit exploitable frequency structure
-* Whether transforming activations into the frequency domain enables new forms of regularization or optimization
-* Whether selective modification of spectral components can improve model behavior
-
----
-
-## Approach
-
-### 1. Transformation to Frequency Domain
-
-Intermediate activations from a neural network are transformed using the Fast Fourier Transform (FFT), allowing analysis of their spectral components.
-
-### 2. Spectral Manipulation
-
-In the frequency domain, different strategies are explored, such as:
-
-* Suppressing low-magnitude (potentially noisy) components
-* Modifying frequency distributions
-* Applying structured filters to emphasize or de-emphasize certain bands
-
-### 3. Reconstruction
-
-The modified representations are transformed back into the spatial domain using the inverse FFT and passed forward through the network.
-
----
-
-## Implementation
-
-* Language: Python
-* Libraries: NumPy, PyTorch (or TensorFlow — adjust this)
-
-The system is designed as a “black box” wrapper that can be applied to existing architectures under controlled conditions.
-
----
+1. **Probe** the trained DNN on a regular grid (uniform sampling needed for DFT) → dense 1-D output curve
+2. **FFT** the curve, inspect the magnitude spectrum
+3. **Low-pass filter**: zero all spectral coefficients above cutoff $f_c$
+4. **IFFT** to reconstruct a denoised curve
+5. **Threshold search**: sweep $f_c \in [0,1)$ in 0.001 steps, optimizing R² (scale-free) or MSE
+6. **DC correction** (real-world data only): shift the reconstructed curve by $(\bar y_{test} - \bar y_{train})$ to correct for non-stationary distribution shift
 
 ## Experiments
 
-### Setup
+| # | Signal | Noise | Key Result |
+|---|--------|-------|------------|
+| 1 | Lag-1, shared noise | σ=30 | R² +0.033, RMSE −11.3 — validates core hypothesis |
+| 2 | Staggered multi-lag, per-component noise | 10% | Blackbox pipeline generalizes; MSE-sweep robust |
+| 3 | AR(1), coeff=10 (strong feedback) | 30% | Still improves; margin narrows under strong AR |
+| 4 | Multi-lag AR (5 terms, lags 4–10) | 40% | Robust to highest noise + complex AR structure |
+| Final | Real electricity demand (2020–24, DNN) | Real | RMSE −20 MW, R² +0.0074 on 2024 holdout |
 
-* Dataset: Toy dataset with controlled noise components
-* Model: Deep Neural Network
-* Baseline: Standard training without spectral modification
+**Final project detail:** 7-layer MLP (8→512→1028→512→256→128→64→1), 1000 epochs, no regularization, train loss → 0 (memorized). Probed at hourly resolution across 2024 (8,784 pts), LPF cutoff = 0.1 cycles/hr, DC shift +127 MW.
 
-### Current Findings
-
-* Preliminary experiments suggest that certain spectral modifications can influence training dynamics
-* Effects vary significantly depending on model architecture and input dimensionality
-* Consistent improvements are observed with varying noise settings.
-
----
+| Metric | DNN | FFT Optimizer |
+|---|---|---|
+| RMSE | 377.18 | 357.09 |
+| R² | 0.9287 | 0.9361 |
+| MAE | 293.21 | 277.77 |
 
 ## Limitations
 
-* Results are preliminary and not yet statistically robust
-* Computational overhead introduced by FFT operations
-* Interaction of the model with real-world data is yet to be seen
-* Unclear theoretical grounding for when and why improvements occur
+- **Effectively 1-D only.** Works because the input varies along a single cyclic axis (time). For $d \geq 2$: sampling cost is $N^d$ (infeasible), regular grids rarely exist in high-D, and "frequency" loses physical meaning.
+- Best suited to 1-D/2-D time-indexed signals where a model can be probed along a natural temporal axis.
+- **DC offset problem.** LPF preserves the training-set mean; non-stationary train/test distributions require a manual mean-shift correction not tunable via the LPF threshold.
 
----
+## Repo Structure
 
-## Future Work
+```
+├── Experiment 1.ipynb
+├── Experiment 2-Copy1.ipynb
+├── Experiment 3.ipynb
+├── Experiment 4.ipynb
+├── final project.ipynb
+└── electricity-demand-dataset.csv
+```
 
-* Extend method to higher-dimensional feature representations
-* Explore connections to regularization techniques (e.g., dropout, spectral normalization)
-* Apply approach to structured signals such as ECG or time-series data
-* Develop theoretical framework explaining observed behaviors
+## Dependencies
 
----
-
-
-## Notes
-
-This is an ongoing research project. The goal is exploratory: to test whether frequency-domain representations provide a useful lens for understanding and improving neural networks, rather than to present a finalized optimization method.
+`numpy`, `pandas`, `matplotlib`, `scikit-learn`, `torch`, `openpyxl`
 
 ---
 
